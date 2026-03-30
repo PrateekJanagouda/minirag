@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import requests
+import os
 
 OLLAMA_URL = "http://10.169.51.167:11434"
 EMBED_MODEL = "nomic-embed-text"
@@ -68,18 +69,41 @@ def ask(question:str,chunks:list[str],embeddings:list[np.ndarray], history:list=
     raw_anwer = response.text.strip().split("\n")[-1]
     return json.loads(raw_anwer)["response"]
 
+def save_index(chunks:list[str], embeddings:list[np.ndarray]):
+    np.save("embeddings.npy",embeddings)
+    with open("chunks.json","w") as f:
+        json.dump(chunks,f)
+    print("Index saved to disk.")
+
+
+def load_index():
+    if os.path.exists("embeddings.npy") and os.path.exists("chunks.json"):
+        embeddings = np.load("embeddings.npy")
+        with open("chunks.json","r") as f:
+            chunks = json.load(f)
+        print("Index loaded from disk.")
+        return chunks, embeddings
+    return None, None
+        
 if __name__ == "__main__":
-    # Load any text file
-    with open("sample.txt", "r") as f:
-        text = f.read()
 
-    print("Chunking text...")
-    chunks = chunk_text(text)
-    print(f"Created {len(chunks)} chunks")
+    chunks, embeddings = load_index()
 
-    print("Embedding chunks...")
-    embeddings = [get_embedding(chunk) for chunk in chunks]
+    if chunks is None :
+        with open("sample.txt", "r") as f:
+            text = f.read()
+
+        print("Chunking text...")
+        chunks = chunk_text(text)
+        print(f"Created {len(chunks)} chunks")
+
+        print("Embedding chunks...")
+        embeddings = [get_embedding(chunk) for chunk in chunks]
+        
+        save_index(chunks, embeddings)
+
     print("Done! Ask me anything.\n")
+
 
     history = []
 
