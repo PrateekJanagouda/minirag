@@ -35,7 +35,7 @@ def chunk_text(text:str ,chunk_size:int = 1000 ,overlap:int = 50) -> list[str]:
     return chunks
 
 
-def ask(question:str,chunks:list[str],embeddings:list[np.ndarray]) -> str:
+def ask(question:str,chunks:list[str],embeddings:list[np.ndarray], history:list= []) -> str:
     question_vec = get_embedding(question)
 
     scores = [cosine_similarity(question_vec,emb) for emb in embeddings]
@@ -44,9 +44,18 @@ def ask(question:str,chunks:list[str],embeddings:list[np.ndarray]) -> str:
 
     context = "\n\n".join(top_chunks)
 
+    history_text = " "
+
+    if history:
+        history_text = "\n\n Previous Converstion:/n"
+
+        for h in history[-3:]:
+            history_text += f"User: {h['question']}\nAI: {h['answer']}\n"   
+
     prompt = f"""Answer the question based on the following context below.
     Context:
     {context}
+    {history_text}
     Question: {question}
     Answer:"""
 
@@ -72,9 +81,13 @@ if __name__ == "__main__":
     embeddings = [get_embedding(chunk) for chunk in chunks]
     print("Done! Ask me anything.\n")
 
+    history = []
+
     while True:
         question = input("You: ").strip()
         if not question:
             break
-        answer = ask(question, chunks, embeddings)
+        answer = ask(question, chunks, embeddings,history)
         print(f"AI: {answer}\n")
+
+        history.append({"question":question,"answer":answer})
